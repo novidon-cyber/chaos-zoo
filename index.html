@@ -12,6 +12,7 @@
     --accent:#8fd3ff; --accent2:#ffd98f; --good:#9dffb0; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
   }
   *{box-sizing:border-box}
+  html,body{overscroll-behavior:none; touch-action:pan-x pan-y;}
   body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
     background:radial-gradient(circle at top,#293057 0%,#171a2b 38%,#10111b 100%);min-height:100vh}
   .wrap{width:min(1240px,95vw);margin:0 auto;padding:28px 0 40px}
@@ -91,7 +92,7 @@
 <div class="wrap">
   <div class="title">
     <h1>🥚 Chaos Zoo</h1>
-    <p>Dark cozy deluxe edition with 75 critters, shiny variants, a shadowed archive dex, and easier step logging throughout the day.</p>
+    <p>Dark cozy deluxe edition with 75 critters, shiny variants, a shadowed archive dex, easier step logging, and a more stable no-surprise-eggu app feel.</p>
   </div>
 
   <div class="toolbar">
@@ -197,7 +198,7 @@
     </div>
   </div>
 
-  <div class="footer-note">Ready for GitHub Pages and PWA installation. Shadow archive included.</div>
+  <div class="footer-note">Ready for GitHub Pages and PWA installation. Pull-to-refresh is blocked and eggu stability has been tightened.</div>
 </div>
 
 <script>
@@ -247,8 +248,12 @@ function loadState(){
       return fresh;
     }
     const parsed = JSON.parse(raw);
+    const fallbackEgg = parsed.currentEgg && parsed.currentEgg.name
+      ? parsed.currentEgg
+      : null;
     const merged = Object.assign(defaultState(), parsed);
-    if(!merged.currentEgg) merged.currentEgg = sample(EGG_TYPES);
+    if(fallbackEgg) merged.currentEgg = fallbackEgg;
+    if(!merged.currentEgg || !merged.currentEgg.name) merged.currentEgg = sample(EGG_TYPES);
     if(!merged.eggDex) merged.eggDex = {};
     if(!merged.dex) merged.dex = {};
     if(!merged.eggDex[merged.currentEgg.name]) recordEggSeen(merged, merged.currentEgg, false);
@@ -601,6 +606,26 @@ installBtn.addEventListener("click", async () => {
   await deferredPrompt.userChoice;
   deferredPrompt = null;
   installBtn.hidden = true;
+});
+
+let touchStartY = 0;
+window.addEventListener("touchstart", (e) => {
+  if(e.touches && e.touches.length){
+    touchStartY = e.touches[0].clientY;
+  }
+}, {passive:true});
+
+window.addEventListener("touchmove", (e) => {
+  const y = e.touches && e.touches.length ? e.touches[0].clientY : 0;
+  const pullingDown = y > touchStartY + 10;
+  const atTop = (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+  if(atTop && pullingDown){
+    e.preventDefault();
+  }
+}, {passive:false});
+
+document.addEventListener("gesturestart", (e) => {
+  e.preventDefault();
 });
 
 if("serviceWorker" in navigator){
