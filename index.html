@@ -91,7 +91,7 @@
 <div class="wrap">
   <div class="title">
     <h1>🥚 Chaos Zoo</h1>
-    <p>Dark cozy deluxe edition with 75 critters, shiny variants, and a shadowed archive dex.</p>
+    <p>Dark cozy deluxe edition with 75 critters, shiny variants, a shadowed archive dex, and easier step logging throughout the day.</p>
   </div>
 
   <div class="toolbar">
@@ -134,11 +134,12 @@
           </div>
 
           <div class="controls">
-            <input id="stepsInput" type="number" min="0" placeholder="Enter today's Fitbit steps" />
-            <button class="primary" id="addBtn">Add Steps</button>
+            <input id="stepsInput" type="number" min="0" placeholder="Enter your CURRENT total steps for today" />
+            <button class="primary" id="addBtn">Log Total</button>
             <button class="ghost" id="exportBtn2">Export Save</button>
             <button class="ghost" id="importBtn2">Import Save</button>
           </div>
+          <div class="meta-note" id="logHelp">Enter your current total for today, not just the extra steps. Example: log 2500 after work, then later log 4000 after groceries, and the game adds only the missing 1500.</div>
 
           <div class="log">
             <div class="big" id="lastTitle">No hatch yet</div>
@@ -151,6 +152,7 @@
             <div class="mini"><div class="label">Shinies</div><div class="value" id="shinyCount">0</div></div>
             <div class="mini"><div class="label">Shiny Species Found</div><div class="value" id="shinySpeciesFound">0</div></div>
             <div class="mini"><div class="label">Egg Types Found</div><div class="value" id="eggTypesFound">0</div></div>
+            <div class="mini"><div class="label">Today's Logged Total</div><div class="value" id="todaySteps">0</div></div>
             <div class="mini"><div class="label">Total Steps Logged</div><div class="value" id="totalSteps">0</div></div>
           </div>
         </div>
@@ -231,7 +233,8 @@ function defaultState(){
   const egg = sample(EGG_TYPES);
   return {
     progress:0, goal:rand(4500,9001), totalSteps:0, totalHatches:0, shinies:0,
-    dex:{}, eggDex:{}, lastCritter:null, currentEgg:egg
+    dex:{}, eggDex:{}, lastCritter:null, currentEgg:egg,
+    dayStamp:getDayStamp(), todayTotal:0
   };
 }
 
@@ -249,7 +252,9 @@ function loadState(){
     if(!merged.eggDex) merged.eggDex = {};
     if(!merged.dex) merged.dex = {};
     if(!merged.eggDex[merged.currentEgg.name]) recordEggSeen(merged, merged.currentEgg, false);
-    return merged;
+    state = merged;
+    syncTodayTracking();
+    return state;
   }catch(e){
     const fresh = defaultState();
     recordEggSeen(fresh, fresh.currentEgg, false);
@@ -260,6 +265,20 @@ function loadState(){
 function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
 function rand(min,max){ return Math.floor(Math.random()*(max-min))+min; }
 function sample(arr){ return arr[rand(0,arr.length)]; }
+function getDayStamp(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth()+1).padStart(2,"0");
+  const d = String(now.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+function syncTodayTracking(){
+  const stamp = getDayStamp();
+  if(state.dayStamp !== stamp){
+    state.dayStamp = stamp;
+    state.todayTotal = 0;
+  }
+}
 
 function recordEggSeen(targetState, egg, increment=true){
   if(!targetState.eggDex[egg.name]){
@@ -360,11 +379,25 @@ function hatchCritter(){
 }
 
 function addSteps(){
+  syncTodayTracking();
   const input = document.getElementById("stepsInput");
-  const steps = parseInt(input.value || "0", 10);
-  if(!Number.isFinite(steps) || steps <= 0) return;
-  state.progress += steps;
-  state.totalSteps += steps;
+  const enteredTotal = parseInt(input.value || "0", 10);
+  if(!Number.isFinite(enteredTotal) || enteredTotal <= 0) return;
+
+  if(enteredTotal < state.todayTotal){
+    alert(`That total is lower than your last total for today (${state.todayTotal.toLocaleString()}). If it's a new day, close and reopen the app, then log the new total.`);
+    return;
+  }
+
+  const delta = enteredTotal - state.todayTotal;
+  if(delta === 0){
+    alert("No new steps to add yet. Enter a higher total later in the day.");
+    return;
+  }
+
+  state.todayTotal = enteredTotal;
+  state.progress += delta;
+  state.totalSteps += delta;
 
   while(state.progress >= state.goal){
     state.progress -= state.goal;
@@ -508,6 +541,7 @@ function render(){
   document.getElementById("percentText").textContent = `${pct}%`;
   document.getElementById("progressFill").style.width = pct + "%";
 
+  syncTodayTracking();
   const discoveredCount = Object.values(state.dex).filter(d => d.discovered).length;
   const shinySpeciesFound = Object.values(state.dex).filter(d => d.shinyDiscovered).length;
   document.getElementById("totalHatches").textContent = state.totalHatches;
@@ -515,6 +549,7 @@ function render(){
   document.getElementById("shinyCount").textContent = state.shinies;
   document.getElementById("shinySpeciesFound").textContent = shinySpeciesFound;
   document.getElementById("eggTypesFound").textContent = Object.keys(state.eggDex).length;
+  document.getElementById("todaySteps").textContent = state.todayTotal.toLocaleString();
   document.getElementById("totalSteps").textContent = state.totalSteps.toLocaleString();
   document.getElementById("eggDexPill").textContent = `${Object.keys(state.eggDex).length} discovered`;
 
