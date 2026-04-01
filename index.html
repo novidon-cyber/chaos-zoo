@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#171a2b" />
+<link rel="manifest" href="manifest.json" />
+<title>Chaos Zoo: Dark Dex Deluxe</title>
+<style>
+  :root{
+    --bg1:#121320; --bg2:#1a1c2f; --panel:#20243a; --panel2:#262b45; --ink:#eef1ff; --muted:#b7bfdc;
+    --accent:#8fd3ff; --accent2:#ffd98f; --good:#9dffb0; --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:radial-gradient(circle at top,#293057 0%,#171a2b 38%,#10111b 100%);min-height:100vh}
+  .wrap{width:min(1240px,95vw);margin:0 auto;padding:28px 0 40px}
+  .title{text-align:center;margin-bottom:18px}
+  .title h1{margin:0 0 8px;font-size:clamp(1.9rem,4vw,3rem)}
+  .title p{margin:0;color:var(--muted)}
+  .toolbar{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0 18px}
+  .layout{display:grid;grid-template-columns:1.12fr .98fr;gap:18px}
+  @media (max-width:980px){.layout{grid-template-columns:1fr}}
+  .stack{display:grid;gap:18px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .card-inner{padding:18px}
+  .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .section-title h2,.section-title h3{margin:0;font-size:1.05rem}
+  .pill{font-size:.85rem;color:#1a2236;background:linear-gradient(180deg,var(--accent),#70b9e8);border-radius:999px;padding:6px 10px;font-weight:700;white-space:nowrap}
+  .viewer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  @media (max-width:620px){.viewer-grid{grid-template-columns:1fr}}
+  .viewer{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)),repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 16px),repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 16px);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px}
+  .viewer h3{margin:0 0 10px;font-size:1rem}
+  .sprite-box{display:flex;align-items:center;justify-content:center;min-height:178px;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.06);border-radius:14px}
+  canvas{image-rendering:pixelated;image-rendering:crisp-edges;width:128px;height:128px;border-radius:12px}
+  .meta-note{margin-top:10px;color:var(--muted);font-size:.92rem;line-height:1.35;min-height:42px}
+  .progress-shell{margin:16px 0 10px}
+  .progress-label{display:flex;justify-content:space-between;color:var(--muted);font-size:.92rem;margin-bottom:8px}
+  .bar{width:100%;height:20px;background:#14182a;border:1px solid rgba(255,255,255,.08);border-radius:999px;overflow:hidden;box-shadow: inset 0 2px 6px rgba(0,0,0,.3)}
+  .fill{height:100%;width:0%;background:linear-gradient(90deg,#78cfff,#ffcf7c);transition:width .25s ease}
+  .controls{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;margin-top:16px}
+  @media (max-width:680px){.controls{grid-template-columns:1fr 1fr}}
+  @media (max-width:520px){.controls{grid-template-columns:1fr}}
+  input{width:100%;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:#111524;color:var(--ink);font-size:1rem;outline:none}
+  input::placeholder{color:#7f88ab}
+  button{border:none;border-radius:14px;padding:14px 16px;font-size:1rem;font-weight:800;cursor:pointer;transition:transform .06s ease, filter .2s ease}
+  button:hover{filter:brightness(1.05)} button:active{transform:translateY(1px)}
+  .primary{background:linear-gradient(180deg,var(--accent),#69b6e7);color:#142235}
+  .ghost{background:#2a314e;color:var(--ink)}
+  .log,.mini,.dex-card,.detail-panel,.table-wrap{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.08);border-radius:14px}
+  .log{padding:14px;min-height:76px;margin-top:14px}
+  .log .big{font-size:1.05rem;font-weight:800;margin-bottom:6px}
+  .log .sub{color:var(--muted);font-size:.95rem;line-height:1.4}
+  .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+  .mini{padding:12px}
+  .mini .label{color:var(--muted);font-size:.82rem;margin-bottom:4px}
+  .mini .value{font-size:1.25rem;font-weight:800}
+  .table-wrap{padding:10px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.95rem;vertical-align:top}
+  th{text-align:left;color:var(--muted);font-size:.84rem}
+  tr:last-child td{border-bottom:none}
+  .egg-swatch{display:inline-block;width:12px;height:12px;border-radius:999px;margin-right:8px;vertical-align:middle;border:1px solid rgba(255,255,255,.25)}
+  .dex-layout{display:grid;grid-template-columns:1.25fr .85fr;gap:14px}
+  @media (max-width:840px){.dex-layout{grid-template-columns:1fr}}
+  .dex-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px;max-height:920px;overflow:auto;padding-right:4px}
+  .dex-card{padding:10px;cursor:pointer;transition:transform .08s ease,border-color .2s ease,background .2s ease;min-height:150px}
+  .dex-card:hover{transform:translateY(-1px);border-color:rgba(143,211,255,.45)}
+  .dex-card.selected{border-color:rgba(143,211,255,.7);box-shadow:0 0 0 1px rgba(143,211,255,.25) inset}
+  .dex-mini{width:100%;min-height:72px;background:#15192b;border-radius:12px;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+  .dex-mini canvas{width:64px;height:64px}
+  .dex-label{font-size:.85rem;font-weight:700;line-height:1.2}
+  .dex-sub{font-size:.76rem;color:var(--muted);margin-top:3px}
+  .dex-num{font-size:.73rem;color:#8ea1cc;margin-bottom:4px}
+  .silhouette canvas{filter:brightness(0) saturate(0) contrast(1.2)}
+  .unknown-name{color:#9aa2c2}
+  .detail-panel{padding:14px;position:sticky;top:16px}
+  .detail-top{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+  .detail-sprite{width:96px;height:96px;background:#15192b;border-radius:14px;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .detail-sprite canvas{width:80px;height:80px}
+  .detail-name{font-size:1.1rem;font-weight:800}
+  .detail-sub{color:var(--muted);font-size:.86rem;margin-top:4px}
+  .detail-text{color:#d9dff6;line-height:1.45;font-size:.94rem}
+  .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .tiny-pill{font-size:.75rem;padding:5px 8px;border-radius:999px;background:#2b3555;color:#d8e3ff;border:1px solid rgba(255,255,255,.08)}
+  .empty{text-align:center;color:var(--muted);padding:26px 14px;background:rgba(255,255,255,.03);border-radius:16px;border:1px dashed rgba(255,255,255,.12)}
+  .footer-note{text-align:center;color:var(--muted);margin-top:16px;font-size:.86rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">
+    <h1>🥚 Chaos Zoo</h1>
+    <p>Dark cozy deluxe edition with 75 critters, shiny variants, and a shadowed archive dex.</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="primary" id="installBtn" hidden>Install App</button>
+    <button class="ghost" id="exportBtn">Export Save</button>
+    <button class="ghost" id="importBtn">Import Save</button>
+    <button class="ghost" id="clearBtnTop">Reset Save</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden />
+  </div>
+
+  <div class="layout">
+    <div class="stack">
+      <section class="card">
+        <div class="card-inner">
+          <div class="section-title">
+            <h2>Current Egg Cycle</h2>
+            <div class="pill" id="eggLabel">Cozy Egg</div>
+          </div>
+
+          <div class="viewer-grid">
+            <div class="viewer">
+              <h3>🥚 Eggu Window</h3>
+              <div class="sprite-box"><canvas id="eggCanvas" width="128" height="128"></canvas></div>
+              <div class="meta-note" id="eggMeta">A patient little egg, waiting for steps.</div>
+            </div>
+
+            <div class="viewer">
+              <h3>🐾 Latest Critter Window</h3>
+              <div class="sprite-box"><canvas id="mainSprite" width="128" height="128"></canvas></div>
+              <div class="meta-note" id="critterMeta">No hatch yet. The critter window is full of suspense.</div>
+            </div>
+          </div>
+
+          <div class="progress-shell">
+            <div class="progress-label">
+              <span id="progressText">0 / 6000 steps</span>
+              <span id="percentText">0%</span>
+            </div>
+            <div class="bar"><div class="fill" id="progressFill"></div></div>
+          </div>
+
+          <div class="controls">
+            <input id="stepsInput" type="number" min="0" placeholder="Enter today's Fitbit steps" />
+            <button class="primary" id="addBtn">Add Steps</button>
+            <button class="ghost" id="exportBtn2">Export Save</button>
+            <button class="ghost" id="importBtn2">Import Save</button>
+          </div>
+
+          <div class="log">
+            <div class="big" id="lastTitle">No hatch yet</div>
+            <div class="sub" id="lastFlavor">Feed this egg some steps and see what crawls out of the pixel soup.</div>
+          </div>
+
+          <div class="stats">
+            <div class="mini"><div class="label">Hatches</div><div class="value" id="totalHatches">0</div></div>
+            <div class="mini"><div class="label">Species Found</div><div class="value" id="dexFound">0</div></div>
+            <div class="mini"><div class="label">Shinies</div><div class="value" id="shinyCount">0</div></div>
+            <div class="mini"><div class="label">Shiny Species Found</div><div class="value" id="shinySpeciesFound">0</div></div>
+            <div class="mini"><div class="label">Egg Types Found</div><div class="value" id="eggTypesFound">0</div></div>
+            <div class="mini"><div class="label">Total Steps Logged</div><div class="value" id="totalSteps">0</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-inner">
+          <div class="section-title">
+            <h2>Egg Data Log</h2>
+            <div class="pill" id="eggDexPill">0 discovered</div>
+          </div>
+          <div class="table-wrap" id="eggTableWrap"></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <div class="card-inner">
+          <div class="section-title">
+            <h3>Critter Dex</h3>
+            <div class="pill" id="dexPill">0 / 75 found</div>
+          </div>
+
+          <div class="dex-layout">
+            <div id="dexGrid" class="dex-grid"></div>
+
+            <div class="detail-panel">
+              <div class="detail-top">
+                <div class="detail-sprite"><canvas id="detailCanvas" width="96" height="96"></canvas></div>
+                <div>
+                  <div class="detail-name" id="detailName">???</div>
+                  <div class="detail-sub" id="detailSub">Unknown critter</div>
+                </div>
+              </div>
+              <div class="badge-row" id="detailBadges"></div>
+              <div class="detail-text" id="detailText">Click a critter entry to inspect it. Undiscovered ones stay in shadow until you hatch them.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="footer-note">Ready for GitHub Pages and PWA installation. Shadow archive included.</div>
+</div>
+
+<script>
+const SAVE_KEY = "chaos_zoo_dark_dex_deluxe_pwa_v1";
+
+const EGG_TYPES = [
+  {name:"Cozy Egg", shell:"#f6f0dd", spots:["#8fd3ff","#ffd98f","#8ff0c5","#ffafc4"], blurb:"Softly speckled. Looks like it naps professionally."},
+  {name:"Dapple Egg", shell:"#ece6ff", spots:["#d8c2ff","#8fd3ff","#ffe496","#ffb8dc"], blurb:"Dreamy and pastel. Suspiciously elegant for an egg."},
+  {name:"Pebble Egg", shell:"#f0eadb", spots:["#9fc2d9","#cbb89d","#b9ddb4","#dba8a8"], blurb:"Earthy little orb. Feels like it enjoys gravel."},
+  {name:"Mossy Egg", shell:"#e6f1dd", spots:["#9dce7f","#b2e6a1","#ffd98f","#8fd3ff"], blurb:"A forest-flavored eggu with excellent cottagecore instincts."},
+  {name:"Twinkle Egg", shell:"#fff0da", spots:["#ffd98f","#8fd3ff","#d8c2ff","#ffb4a2"], blurb:"Bright and dramatic. Probably thinks it is the main character."},
+  {name:"Marshmallow Egg", shell:"#fff6fb", spots:["#ffcde4","#d7c7ff","#c8f1ff","#fff0a8"], blurb:"Unreasonably soft-looking. Almost illegal to hatch."},
+  {name:"Puddle Egg", shell:"#e4f7ff", spots:["#8fd3ff","#76b5ff","#b5ffe9","#d7c7ff"], blurb:"Cool-toned and damp in spirit."},
+  {name:"Suncrumb Egg", shell:"#fff2cf", spots:["#ffcf7c","#ffc36e","#ffdfe0","#b8f0a8"], blurb:"Warm and crumbly. Looks baked by a friendly star."}
+];
+
+const SPECIES = [{"id": "pebblet", "name": "Pebblet", "body": "blob", "flavor": "This creature collects shiny dust under the couch.", "dex": 1}, {"id": "mossbun", "name": "Mossbun", "body": "bean", "flavor": "This creature vibrates faintly when excited about moss.", "dex": 2}, {"id": "wigglefox", "name": "Wigglefox", "body": "quad", "flavor": "This creature wiggles constantly, even in dreams.", "dex": 3}, {"id": "snugbug", "name": "Snugbug", "body": "floof", "flavor": "This creature believes every blanket is a mountain.", "dex": 4}, {"id": "pufflet", "name": "Pufflet", "body": "blob", "flavor": "This creature becomes rounder when emotionally supported.", "dex": 5}, {"id": "dewbean", "name": "Dewbean", "body": "bean", "flavor": "This creature adores puddles and damp nonsense.", "dex": 6}, {"id": "glimmeroo", "name": "Glimmeroo", "body": "quad", "flavor": "This creature cannot resist dramatic window perching.", "dex": 7}, {"id": "crumbit", "name": "Crumbit", "body": "floof", "flavor": "This creature hoards crumbs with noble dedication.", "dex": 8}, {"id": "tootmite", "name": "Tootmite", "body": "blob", "flavor": "This creature bonks into furniture and blames destiny.", "dex": 9}, {"id": "cloverpaw", "name": "Cloverpaw", "body": "quad", "flavor": "This creature pretends to be brave around houseplants.", "dex": 10}, {"id": "mallowmew", "name": "Mallowmew", "body": "bean", "flavor": "This creature likes warm rocks and terrible decisions.", "dex": 11}, {"id": "pipsnout", "name": "Pipsnout", "body": "blob", "flavor": "This creature follows footsteps like a tiny detective.", "dex": 12}, {"id": "nibtail", "name": "Nibtail", "body": "quad", "flavor": "This creature stores snacks in a pocket that should not exist.", "dex": 13}, {"id": "tumblepet", "name": "Tumblepet", "body": "floof", "flavor": "This creature hums softly when the room gets sleepy.", "dex": 14}, {"id": "snugwhisk", "name": "Snugwhisk", "body": "bean", "flavor": "This creature sleeps in socks it did not ask permission to borrow.", "dex": 15}, {"id": "mochihop", "name": "Mochihop", "body": "blob", "flavor": "This creature stares at the moon like it owes rent.", "dex": 16}, {"id": "pearlbug", "name": "Pearlbug", "body": "floof", "flavor": "This creature has impeccable opinions about damp leaves.", "dex": 17}, {"id": "fizzpaw", "name": "Fizzpaw", "body": "quad", "flavor": "This creature is suspiciously delighted by thunderstorms.", "dex": 18}, {"id": "bunleaf", "name": "Bunleaf", "body": "bean", "flavor": "This creature naps where sunlight pools on the floor.", "dex": 19}, {"id": "wobfox", "name": "Wobfox", "body": "quad", "flavor": "This creature trots with the confidence of a much larger animal.", "dex": 20}, {"id": "puddlepuff", "name": "Puddlepuff", "body": "blob", "flavor": "This creature treats every puddle like a sacred spa.", "dex": 21}, {"id": "fernoodle", "name": "Fernoodle", "body": "bean", "flavor": "This creature can disappear inside houseplants with alarming skill.", "dex": 22}, {"id": "rattlebun", "name": "Rattlebun", "body": "quad", "flavor": "This creature startles itself and then blames architecture.", "dex": 23}, {"id": "crumblet", "name": "Crumblet", "body": "floof", "flavor": "This creature leaves behind a mysterious trail of crumbs.", "dex": 24}, {"id": "pebpaw", "name": "Pebpaw", "body": "quad", "flavor": "This creature likes arranging pebbles by emotional significance.", "dex": 25}, {"id": "mistmew", "name": "Mistmew", "body": "bean", "flavor": "This creature gets dreamy around rainy windows.", "dex": 26}, {"id": "taffytoes", "name": "Taffytoes", "body": "blob", "flavor": "This creature is softer than its own self-confidence.", "dex": 27}, {"id": "brambit", "name": "Brambit", "body": "quad", "flavor": "This creature thinks brambles are a personality trait.", "dex": 28}, {"id": "cloudoodle", "name": "Cloudoodle", "body": "floof", "flavor": "This creature drifts into naps mid-thought.", "dex": 29}, {"id": "moonmop", "name": "Moonmop", "body": "blob", "flavor": "This creature stares at moonlight like it is hearing gossip.", "dex": 30}, {"id": "pinepuff", "name": "Pinepuff", "body": "floof", "flavor": "This creature smells faintly of a forest after rain.", "dex": 31}, {"id": "gingersnout", "name": "Gingersnout", "body": "bean", "flavor": "This creature investigates kitchens with scholarly focus.", "dex": 32}, {"id": "twiggle", "name": "Twiggle", "body": "quad", "flavor": "This creature trots like a tiny branch with opinions.", "dex": 33}, {"id": "dabblet", "name": "Dabblet", "body": "blob", "flavor": "This creature pokes new things and immediately regrets it.", "dex": 34}, {"id": "lullabug", "name": "Lullabug", "body": "floof", "flavor": "This creature hums lullabies to abandoned socks.", "dex": 35}, {"id": "snuffleaf", "name": "Snuffleaf", "body": "bean", "flavor": "This creature sniffs leaves like a sommelier.", "dex": 36}, {"id": "whimwhisk", "name": "Whimwhisk", "body": "quad", "flavor": "This creature acts elegant until it trips over air.", "dex": 37}, {"id": "ploom", "name": "Ploom", "body": "blob", "flavor": "This creature bounces when emotionally overwhelmed.", "dex": 38}, {"id": "cobblecub", "name": "Cobblecub", "body": "quad", "flavor": "This creature likes warm stones and dramatic loafing.", "dex": 39}, {"id": "velvetip", "name": "Velvetip", "body": "bean", "flavor": "This creature sits in sunbeams as if paid to do so.", "dex": 40}, {"id": "spriglet", "name": "Spriglet", "body": "blob", "flavor": "This creature carries a single twig for confidence.", "dex": 41}, {"id": "rillruff", "name": "Rillruff", "body": "quad", "flavor": "This creature loves tiny streams and reckless splashing.", "dex": 42}, {"id": "mopkin", "name": "Mopkin", "body": "floof", "flavor": "This creature gathers dust bunnies as if they are cousins.", "dex": 43}, {"id": "cinnasnug", "name": "Cinnasnug", "body": "bean", "flavor": "This creature curls up into shapes that insult geometry.", "dex": 44}, {"id": "bumblet", "name": "Bumblet", "body": "blob", "flavor": "This creature buzzes softly when it discovers a snack.", "dex": 45}, {"id": "sootpet", "name": "Sootpet", "body": "floof", "flavor": "This creature emerges from corners looking vaguely enchanted.", "dex": 46}, {"id": "patterpaw", "name": "Patterpaw", "body": "quad", "flavor": "This creature enjoys rainy sidewalks and wet paw drama.", "dex": 47}, {"id": "jellytail", "name": "Jellytail", "body": "bean", "flavor": "This creature jiggles with suspicious serenity.", "dex": 48}, {"id": "pompuddle", "name": "Pompuddle", "body": "blob", "flavor": "This creature thinks every reflection is a new friend.", "dex": 49}, {"id": "fluffern", "name": "Fluffern", "body": "floof", "flavor": "This creature gets lost in its own fluff with dignity.", "dex": 50}, {"id": "nibfox", "name": "Nibfox", "body": "quad", "flavor": "This creature steals pencils for reasons unknown.", "dex": 51}, {"id": "marmibun", "name": "Marmibun", "body": "bean", "flavor": "This creature has jam-colored daydreams.", "dex": 52}, {"id": "glowmop", "name": "Glowmop", "body": "floof", "flavor": "This creature sparkles when no one is watching.", "dex": 53}, {"id": "tuftoodle", "name": "Tuftoodle", "body": "blob", "flavor": "This creature sheds fluff in decorative patterns.", "dex": 54}, {"id": "meadowmew", "name": "Meadowmew", "body": "bean", "flavor": "This creature naps like a professionally curated postcard.", "dex": 55}, {"id": "truffletoes", "name": "Truffletoes", "body": "quad", "flavor": "This creature sniffs for treasure that may be entirely imaginary.", "dex": 56}, {"id": "berribit", "name": "Berribit", "body": "blob", "flavor": "This creature becomes chaotic near berries.", "dex": 57}, {"id": "drowsprite", "name": "Drowsprite", "body": "floof", "flavor": "This creature can yawn loud enough to cause secondhand sleepiness.", "dex": 58}, {"id": "ripplebun", "name": "Ripplebun", "body": "bean", "flavor": "This creature likes making tiny circles in water.", "dex": 59}, {"id": "kettlecub", "name": "Kettlecub", "body": "quad", "flavor": "This creature loafs near warm appliances with tactical precision.", "dex": 60}, {"id": "wispit", "name": "Wispit", "body": "blob", "flavor": "This creature appears where blankets are thickest.", "dex": 61}, {"id": "murmurbug", "name": "Murmurbug", "body": "floof", "flavor": "This creature seems to gossip with moths.", "dex": 62}, {"id": "fablepaw", "name": "Fablepaw", "body": "quad", "flavor": "This creature walks like it knows a secret ending.", "dex": 63}, {"id": "nectaroo", "name": "Nectaroo", "body": "bean", "flavor": "This creature has floral opinions and no patience.", "dex": 64}, {"id": "pompomble", "name": "Pompomble", "body": "floof", "flavor": "This creature is mostly fluff and unresolved intentions.", "dex": 65}, {"id": "tipplet", "name": "Tipplet", "body": "blob", "flavor": "This creature topples gently and calls it choreography.", "dex": 66}, {"id": "sagebun", "name": "Sagebun", "body": "bean", "flavor": "This creature radiates calm until snacks appear.", "dex": 67}, {"id": "brookbit", "name": "Brookbit", "body": "quad", "flavor": "This creature makes heroic speeches to puddles.", "dex": 68}, {"id": "hushmop", "name": "Hushmop", "body": "floof", "flavor": "This creature moves like a blanket ghost with manners.", "dex": 69}, {"id": "velcroo", "name": "Velcroo", "body": "blob", "flavor": "This creature attaches emotionally to cozy objects.", "dex": 70}, {"id": "marzipaw", "name": "Marzipaw", "body": "quad", "flavor": "This creature is sweet-looking and mildly feral.", "dex": 71}, {"id": "dimplesnout", "name": "Dimplesnout", "body": "bean", "flavor": "This creature is deeply invested in soft corners.", "dex": 72}, {"id": "starruff", "name": "Starruff", "body": "quad", "flavor": "This creature loves night air and rooftop dreams.", "dex": 73}, {"id": "comfibble", "name": "Comfibble", "body": "floof", "flavor": "This creature treats cushions like ancestral territory.", "dex": 74}, {"id": "plinklet", "name": "Plinklet", "body": "blob", "flavor": "This creature makes tiny noises of profound importance.", "dex": 75}, {"id": "noodlebun", "name": "Noodlebun", "body": "bean", "flavor": "This creature folds into impossible resting positions.", "dex": 76}];
+
+const PALETTES = [
+  ["#8dd3ff","#5ea7df","#dff6ff","#5c7a99"],
+  ["#ffb3bf","#ff859f","#ffe0e7","#946070"],
+  ["#bff1a7","#84cf6e","#efffe3","#688a56"],
+  ["#d8c2ff","#ac8cff","#f1eaff","#78639b"],
+  ["#ffd49a","#f6ae4c","#fff0d7","#a27443"],
+  ["#c7f0d8","#72c59a","#effff5","#4f8f72"],
+  ["#ffd5a7","#ffac61","#fff0dd","#9d6d38"]
+];
+
+let state = loadState();
+let selectedDexId = SPECIES[0].id;
+
+function defaultState(){
+  const egg = sample(EGG_TYPES);
+  return {
+    progress:0, goal:rand(4500,9001), totalSteps:0, totalHatches:0, shinies:0,
+    dex:{}, eggDex:{}, lastCritter:null, currentEgg:egg
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw){
+      const fresh = defaultState();
+      recordEggSeen(fresh, fresh.currentEgg, false);
+      return fresh;
+    }
+    const parsed = JSON.parse(raw);
+    const merged = Object.assign(defaultState(), parsed);
+    if(!merged.currentEgg) merged.currentEgg = sample(EGG_TYPES);
+    if(!merged.eggDex) merged.eggDex = {};
+    if(!merged.dex) merged.dex = {};
+    if(!merged.eggDex[merged.currentEgg.name]) recordEggSeen(merged, merged.currentEgg, false);
+    return merged;
+  }catch(e){
+    const fresh = defaultState();
+    recordEggSeen(fresh, fresh.currentEgg, false);
+    return fresh;
+  }
+}
+
+function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }
+function rand(min,max){ return Math.floor(Math.random()*(max-min))+min; }
+function sample(arr){ return arr[rand(0,arr.length)]; }
+
+function recordEggSeen(targetState, egg, increment=true){
+  if(!targetState.eggDex[egg.name]){
+    targetState.eggDex[egg.name] = {name:egg.name, seen:0, shell:egg.shell, spots:egg.spots, blurb:egg.blurb};
+  }
+  if(increment) targetState.eggDex[egg.name].seen += 1;
+  if(!increment && targetState.eggDex[egg.name].seen < 1) targetState.eggDex[egg.name].seen = 1;
+}
+
+function speciesPalette(speciesId, shiny){
+  let seed = 0;
+  for(let i=0;i<speciesId.length;i++) seed = (seed*31 + speciesId.charCodeAt(i)) >>> 0;
+  if(shiny) return ["#fff4a8","#8be9ff","#fffefc","#ffe27a"];
+  return PALETTES[seed % PALETTES.length];
+}
+
+function seeded(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function randWith(rng,min,max){ return Math.floor(rng()*(max-min))+min; }
+
+function drawCritterToCanvas(canvas, critter, mini=false, silhouette=false){
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const pixel = mini ? 4 : (canvas.width===96 ? 6 : 8);
+  let seed = 0;
+  const key = critter.id || critter.name || "mystery";
+  for(let i=0;i<key.length;i++) seed = (seed*31 + key.charCodeAt(i)) >>> 0;
+  if(critter.shiny) seed += 99991;
+  const seedRand = seeded(seed);
+  const palette = silhouette ? ["#2b3048","#3b415f","#4c5478","#586180"] : (critter.palette || speciesPalette(key, critter.shiny));
+  const body = critter.body || "blob";
+  const eyeY = 7 + Math.floor(seedRand()*2);
+
+  function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*pixel,y*pixel,pixel,pixel); }
+  const bodyColor = palette[0], accent = palette[1], fluff = palette[2], outline = palette[3];
+  const putBodyPixel = (x,y,color=bodyColor) => { p(x,y,color); if(!silhouette && seedRand() > 0.82) p(x,y,fluff); };
+
+  if(body === "blob"){
+    for(let y=4;y<12;y++) for(let x=4;x<12;x++){ const dx=x-7.5, dy=y-7.5; if(dx*dx+dy*dy<15 && seedRand()>.12) putBodyPixel(x,y); }
+  } else if(body === "bean"){
+    for(let y=3;y<13;y++) for(let x=5;x<11;x++){ const dx=(x-7.5)/2.2, dy=(y-7.5)/3.2; if(dx*dx+dy*dy<1.1 && seedRand()>.08) putBodyPixel(x,y); }
+  } else if(body === "quad"){
+    for(let y=5;y<11;y++) for(let x=3;x<12;x++) if(seedRand()>.15) putBodyPixel(x,y);
+    p(4,11,outline); p(6,11,outline); p(9,11,outline); p(11,11,outline);
+  } else {
+    for(let y=4;y<12;y++) for(let x=4;x<12;x++) if(seedRand()>.25) putBodyPixel(x,y);
+    if(!silhouette) for(let i=0;i<16;i++) p(randWith(seedRand,2,14), randWith(seedRand,2,14), fluff);
+  }
+
+  if(seedRand()>.4){ p(5,3,accent); p(10,3,accent); }
+  if(seedRand()>.55){ p(12,8,accent); if(seedRand()>.5) p(13,8,fluff); }
+  if(seedRand()>.78){ p(3,7,fluff); p(13,7,fluff); }
+  if(!silhouette && seedRand()>.62){ for(let x=5;x<11;x+=2) p(x,5,fluff); }
+
+  if(!silhouette){
+    p(6,eyeY,"#131313"); p(9,eyeY,"#131313");
+    if(seedRand()>.52) p(7,eyeY+2, outline);
+    if(critter.shiny) for(let i=0;i<8;i++){ const sx=randWith(seedRand,1,15), sy=randWith(seedRand,1,15); p(sx, sy, i%2===0 ? "#ffffff" : "#fff3a1"); }
+  }
+}
+
+function drawEgg(canvas, egg){
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const px = 8;
+  function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*px,y*px,px,px); }
+  for(let y=3;y<13;y++) for(let x=4;x<12;x++){ const dx=(x-7.5)/2.7, dy=(y-7.5)/4.1; if(dx*dx+dy*dy<1.0) p(x,y,egg.shell); }
+  const coords=[[6,6],[9,5],[8,9],[5,9],[10,8],[7,4]];
+  for(let i=0;i<egg.spots.length;i++){ const c=coords[i]; if(c) p(c[0],c[1],egg.spots[i]); }
+}
+
+function hatchCritter(){
+  const species = sample(SPECIES);
+  const shiny = Math.random() < 0.06;
+  const entry = state.dex[species.id] || {count:0, shinyCount:0, discovered:false, shinyDiscovered:false};
+  entry.count += 1;
+  entry.discovered = true;
+  if(shiny){ entry.shinyCount += 1; entry.shinyDiscovered = true; }
+  entry.lastHatchedAt = Date.now();
+  state.dex[species.id] = entry;
+
+  state.totalHatches += 1;
+  if(shiny) state.shinies += 1;
+  state.lastCritter = {
+    id: species.id, name: species.name, body: species.body, flavor: species.flavor, dex: species.dex,
+    shiny, hatchedFrom: state.currentEgg.name, palette: speciesPalette(species.id, shiny)
+  };
+
+  const nextEgg = sample(EGG_TYPES);
+  state.currentEgg = nextEgg;
+  recordEggSeen(state, nextEgg, true);
+}
+
+function addSteps(){
+  const input = document.getElementById("stepsInput");
+  const steps = parseInt(input.value || "0", 10);
+  if(!Number.isFinite(steps) || steps <= 0) return;
+  state.progress += steps;
+  state.totalSteps += steps;
+
+  while(state.progress >= state.goal){
+    state.progress -= state.goal;
+    hatchCritter();
+    state.goal = rand(4500,9001);
+  }
+
+  input.value = "";
+  saveState();
+  render();
+}
+
+function resetSave(){
+  if(!confirm("Reset your Chaos Zoo save? This clears your dex, egg log, and progress.")) return;
+  state = defaultState();
+  recordEggSeen(state, state.currentEgg, false);
+  selectedDexId = SPECIES[0].id;
+  saveState();
+  render();
+}
+
+function exportSave(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "chaos-zoo-dark-dex-save.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importSave(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      state = Object.assign(defaultState(), imported);
+      if(!state.currentEgg) state.currentEgg = sample(EGG_TYPES);
+      if(!state.eggDex) state.eggDex = {};
+      if(!state.dex) state.dex = {};
+      if(!state.eggDex[state.currentEgg.name]) recordEggSeen(state, state.currentEgg, false);
+      saveState();
+      render();
+      alert("Save imported.");
+    } catch(e) {
+      alert("That save file did not parse correctly.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderEggTable(){
+  const wrap = document.getElementById("eggTableWrap");
+  const eggs = Object.values(state.eggDex).sort((a,b)=>b.seen-a.seen || a.name.localeCompare(b.name));
+  if(!eggs.length){ wrap.innerHTML = '<div class="empty">No egg types discovered yet.</div>'; return; }
+  let html = '<table><thead><tr><th>Egg Type</th><th>Seen</th><th>Notes</th></tr></thead><tbody>';
+  for(const egg of eggs){
+    html += `<tr><td><span class="egg-swatch" style="background:${egg.shell}"></span>${escapeHtml(egg.name)}</td><td>${egg.seen}</td><td>${escapeHtml(egg.blurb)}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function renderDex(){
+  const grid = document.getElementById("dexGrid");
+  grid.innerHTML = "";
+  let foundCount = 0;
+
+  for(const species of SPECIES){
+    const data = state.dex[species.id];
+    const discovered = !!(data && data.discovered);
+    if(discovered) foundCount += 1;
+
+    const card = document.createElement("div");
+    card.className = "dex-card" + (species.id === selectedDexId ? " selected" : "");
+    card.addEventListener("click", () => {
+      selectedDexId = species.id;
+      renderDex();
+      renderDexDetail();
+    });
+
+    const mini = document.createElement("div");
+    mini.className = "dex-mini" + (!discovered ? " silhouette" : "");
+    const cv = document.createElement("canvas");
+    cv.width = 64; cv.height = 64;
+    mini.appendChild(cv);
+
+    const num = document.createElement("div");
+    num.className = "dex-num";
+    num.textContent = `#${String(species.dex).padStart(3,"0")}`;
+
+    const label = document.createElement("div");
+    label.className = "dex-label" + (!discovered ? " unknown-name" : "");
+    label.textContent = discovered ? species.name : "???";
+
+    const sub = document.createElement("div");
+    sub.className = "dex-sub";
+    sub.textContent = discovered ? `${data.count} hatched${data.shinyCount ? ` • ${data.shinyCount} shiny` : ""}` : "Undiscovered";
+
+    card.appendChild(num);
+    card.appendChild(mini);
+    card.appendChild(label);
+    card.appendChild(sub);
+    grid.appendChild(card);
+
+    drawCritterToCanvas(cv, {id:species.id, name:species.name, body:species.body, shiny:false}, true, !discovered);
+  }
+
+  document.getElementById("dexPill").textContent = `${foundCount} / ${SPECIES.length} found`;
+}
+
+function renderDexDetail(){
+  const species = SPECIES.find(s => s.id === selectedDexId) || SPECIES[0];
+  const data = state.dex[species.id];
+  const discovered = !!(data && data.discovered);
+  const shinyFound = !!(data && data.shinyDiscovered);
+
+  document.getElementById("detailName").textContent = discovered ? species.name : "???";
+  document.getElementById("detailSub").textContent = discovered
+    ? `Dex #${String(species.dex).padStart(3,"0")} • ${data.count} total hatched${data.shinyCount ? ` • ${data.shinyCount} shiny` : ""}`
+    : `Dex #${String(species.dex).padStart(3,"0")} • Unknown critter`;
+
+  const badges = [];
+  badges.push(`<span class="tiny-pill">${species.body}</span>`);
+  if(discovered) badges.push(`<span class="tiny-pill">discovered</span>`);
+  if(shinyFound) badges.push(`<span class="tiny-pill">shiny found ✨</span>`);
+  document.getElementById("detailBadges").innerHTML = badges.join("");
+
+  document.getElementById("detailText").textContent = discovered
+    ? `${species.flavor} This species has been hatched ${data.count} time(s).${shinyFound ? " A shiny version has also been documented." : " Its shiny form remains a rumor for now."}`
+    : "This entry is still buried in shadow. Hatch more eggs to reveal who this little gremlin actually is.";
+
+  const detailCanvas = document.getElementById("detailCanvas");
+  drawCritterToCanvas(detailCanvas, {id:species.id, name:species.name, body:species.body, shiny:false}, false, !discovered);
+}
+
+function render(){
+  const egg = state.currentEgg;
+  document.getElementById("eggLabel").textContent = egg.name;
+  document.getElementById("progressText").textContent = `${state.progress} / ${state.goal} steps`;
+  const pct = Math.max(0, Math.min(100, Math.round((state.progress/state.goal)*100)));
+  document.getElementById("percentText").textContent = `${pct}%`;
+  document.getElementById("progressFill").style.width = pct + "%";
+
+  const discoveredCount = Object.values(state.dex).filter(d => d.discovered).length;
+  const shinySpeciesFound = Object.values(state.dex).filter(d => d.shinyDiscovered).length;
+  document.getElementById("totalHatches").textContent = state.totalHatches;
+  document.getElementById("dexFound").textContent = discoveredCount;
+  document.getElementById("shinyCount").textContent = state.shinies;
+  document.getElementById("shinySpeciesFound").textContent = shinySpeciesFound;
+  document.getElementById("eggTypesFound").textContent = Object.keys(state.eggDex).length;
+  document.getElementById("totalSteps").textContent = state.totalSteps.toLocaleString();
+  document.getElementById("eggDexPill").textContent = `${Object.keys(state.eggDex).length} discovered`;
+
+  drawEgg(document.getElementById("eggCanvas"), egg);
+  document.getElementById("eggMeta").textContent = `${egg.blurb} Seen ${state.eggDex[egg.name]?.seen || 0} time(s).`;
+
+  const mainCanvas = document.getElementById("mainSprite");
+  if(state.lastCritter){
+    drawCritterToCanvas(mainCanvas, state.lastCritter, false, false);
+    document.getElementById("lastTitle").textContent = `Hatched: ${state.lastCritter.name}${state.lastCritter.shiny ? " ✨" : ""}`;
+    document.getElementById("lastFlavor").textContent = `${state.lastCritter.flavor} Hatched from ${state.lastCritter.hatchedFrom}.`;
+    document.getElementById("critterMeta").textContent = `${state.lastCritter.name}${state.lastCritter.shiny ? " ✨" : ""} emerged from a ${state.lastCritter.hatchedFrom}.`;
+  } else {
+    const ctx = mainCanvas.getContext("2d");
+    ctx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
+    document.getElementById("lastTitle").textContent = "No hatch yet";
+    document.getElementById("lastFlavor").textContent = "Feed this egg some steps and see what crawls out of the pixel soup.";
+    document.getElementById("critterMeta").textContent = "No hatch yet. The critter window is full of suspense.";
+  }
+
+  renderEggTable();
+  renderDex();
+  renderDexDetail();
+}
+
+function escapeHtml(text){
+  return String(text).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+document.getElementById("addBtn").addEventListener("click", addSteps);
+document.getElementById("clearBtnTop").addEventListener("click", resetSave);
+document.getElementById("stepsInput").addEventListener("keydown", e => { if(e.key === "Enter") addSteps(); });
+document.getElementById("exportBtn").addEventListener("click", exportSave);
+document.getElementById("exportBtn2").addEventListener("click", exportSave);
+document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
+document.getElementById("importBtn2").addEventListener("click", () => document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", e => { const file=e.target.files[0]; if(file) importSave(file); });
+
+let deferredPrompt = null;
+const installBtn = document.getElementById("installBtn");
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.hidden = false;
+});
+installBtn.addEventListener("click", async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.hidden = true;
+});
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+
+saveState();
+render();
+</script>
+</body>
+</html>
